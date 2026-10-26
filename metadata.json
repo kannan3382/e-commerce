@@ -1,0 +1,6 @@
+{
+  "name": "AURA Modern Commerce",
+  "description": "A modern, responsive, full-featured e-commerce platform with product discovery, cart, checkout, order tracking, wishlist, customer portal, and comprehensive admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
