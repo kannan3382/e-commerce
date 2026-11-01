@@ -10,7 +10,8 @@ import {
   Address, 
   FilterState, 
   PageRoute,
-  OrderStatus 
+  OrderStatus,
+  StoreSettings
 } from '../types';
 import { 
   INITIAL_PRODUCTS, 
@@ -18,8 +19,11 @@ import {
   INITIAL_COUPONS, 
   INITIAL_USER, 
   INITIAL_ORDERS, 
-  INITIAL_REVIEWS 
+  INITIAL_REVIEWS,
+  INITIAL_STORE_SETTINGS
 } from '../data/mockData';
+import { getWhatsAppOrderUrl, DEFAULT_OWNER_WHATSAPP } from '../utils/currency';
+
 
 export interface Toast {
   id: string;
@@ -80,8 +84,19 @@ interface StoreContextType {
     paymentMethod: 'card' | 'stripe' | 'razorpay' | 'upi' | 'cod';
     shippingCost: number;
   }) => Order;
+  orderSingleProductViaWhatsApp: (product: Product, quantity?: number, selectedColor?: string) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   getOrderById: (orderId: string) => Order | undefined;
+
+  // WhatsApp & Store Configuration Settings
+  ownerWhatsAppNumber: string;
+  setOwnerWhatsAppNumber: (phone: string) => void;
+  sendOrderToWhatsApp: (order: Order) => void;
+  whatsAppNotificationOrder: Order | null;
+  setWhatsAppNotificationOrder: (order: Order | null) => void;
+  settings: StoreSettings;
+  updateSettings: (newSettings: Partial<StoreSettings>) => void;
+  resetSettingsToDefault: () => void;
 
   // Reviews
   reviews: Review[];
@@ -120,7 +135,7 @@ const DEFAULT_FILTERS: FilterState = {
   category: 'all',
   brand: 'all',
   minPrice: 0,
-  maxPrice: 2000,
+  maxPrice: 200000,
   minRating: 0,
   inStockOnly: false,
   sortBy: 'featured',
@@ -134,15 +149,54 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [filterState, setFilterState] = useState<FilterState>(DEFAULT_FILTERS);
 
-  // Persistent Products
+  // Store Configuration Settings
+  const [settings, setSettings] = useState<StoreSettings>(() => {
+    try {
+      const saved = localStorage.getItem('aura_store_settings');
+      if (saved) {
+        const parsed: StoreSettings = JSON.parse(saved);
+        // Migrate old phone if present
+        if (!parsed.ownerWhatsApp || parsed.ownerWhatsApp === '919876543210') {
+          parsed.ownerWhatsApp = '9360723382';
+        }
+        return { ...INITIAL_STORE_SETTINGS, ...parsed };
+      }
+      return INITIAL_STORE_SETTINGS;
+    } catch {
+      return INITIAL_STORE_SETTINGS;
+    }
+  });
+
+  // Store Owner WhatsApp Phone
+  const [ownerWhatsAppNumber, setOwnerWhatsAppNumber] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('aura_owner_whatsapp');
+      if (saved && saved !== '919876543210') {
+        return saved;
+      }
+      return DEFAULT_OWNER_WHATSAPP;
+    } catch {
+      return DEFAULT_OWNER_WHATSAPP;
+    }
+  });
+
+  // Persistent Products with ₹100 entry-level items validation
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('aura_products');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      const saved = localStorage.getItem('aura_products_v3');
+      if (saved) {
+        const parsed: Product[] = JSON.parse(saved);
+        if (parsed.length > 0 && parsed.some((p) => p.id === 'prod-min-100')) {
+          return parsed;
+        }
+      }
+      localStorage.setItem('aura_products_v3', JSON.stringify(INITIAL_PRODUCTS));
+      return INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
   });
+
 
   // Persistent Categories
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -169,7 +223,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     try {
       const saved = localStorage.getItem('aura_coupons');
-      return saved ? JSON.parse(saved) : INITIAL_COUPONS;
+      if (saved) {
+        const parsed: Coupon[] = JSON.parse(saved);
+        if (parsed.length > 0 && parsed[0].minSpend < 1000) {
+          localStorage.setItem('aura_coupons', JSON.stringify(INITIAL_COUPONS));
+          return INITIAL_COUPONS;
+        }
+        return parsed;
+      }
+      return INITIAL_COUPONS;
     } catch {
       return INITIAL_COUPONS;
     }
@@ -200,7 +262,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
       const saved = localStorage.getItem('aura_orders');
-      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+      if (saved) {
+        const parsed: Order[] = JSON.parse(saved);
+        if (parsed.length > 0 && parsed[0].total < 1000) {
+          localStorage.setItem('aura_orders', JSON.stringify(INITIAL_ORDERS));
+          return INITIAL_ORDERS;
+        }
+        return parsed;
+      }
+      return INITIAL_ORDERS;
     } catch {
       return INITIAL_ORDERS;
     }
@@ -221,12 +291,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
   const [emailModalOrder, setEmailModalOrder] = useState<Order | null>(null);
+  const [whatsAppNotificationOrder, setWhatsAppNotificationOrder] = useState<Order | null>(null);
   const [devGuideOpen, setDevGuideOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Sync to localStorage
   useEffect(() => {
-    localStorage.setItem('aura_products', JSON.stringify(products));
+    localStorage.setItem('aura_store_settings', JSON.stringify(settings));
+  }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem('aura_owner_whatsapp', ownerWhatsAppNumber);
+  }, [ownerWhatsAppNumber]);
+
+  useEffect(() => {
+    localStorage.setItem('aura_products_v3', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
@@ -267,7 +346,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       removeToast(id);
-    }, 4000);
+    }, 4500);
   };
 
   const removeToast = (id: string) => {
@@ -284,6 +363,114 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetFilters = () => {
     setFilterState(DEFAULT_FILTERS);
   };
+
+  // Store Settings Handlers
+  const handleSetOwnerWhatsApp = (phone: string) => {
+    setOwnerWhatsAppNumber(phone);
+    setSettings((prev) => ({ ...prev, ownerWhatsApp: phone }));
+  };
+
+  const updateSettings = (newSettings: Partial<StoreSettings>) => {
+    setSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      if (newSettings.ownerWhatsApp) {
+        setOwnerWhatsAppNumber(newSettings.ownerWhatsApp);
+      }
+      return updated;
+    });
+    showToast('Store & WhatsApp settings updated successfully!', 'success');
+  };
+
+  const resetSettingsToDefault = () => {
+    setSettings(INITIAL_STORE_SETTINGS);
+    setOwnerWhatsAppNumber(INITIAL_STORE_SETTINGS.ownerWhatsApp);
+    showToast('Store settings restored to default configuration', 'info');
+  };
+
+  // WhatsApp Send Order helper (automatically launches WhatsApp and opens dispatch modal)
+  const sendOrderToWhatsApp = (order: Order) => {
+    const targetPhone = settings.ownerWhatsApp || ownerWhatsAppNumber;
+    const url = getWhatsAppOrderUrl(order, targetPhone);
+    setWhatsAppNotificationOrder(order);
+    try {
+      window.open(url, '_blank');
+      showToast(`WhatsApp message automatically sent to store owner (+91 ${targetPhone.replace(/^91/, '')})!`, 'success');
+    } catch {
+      showToast(`WhatsApp order ready for owner (${targetPhone})`, 'info');
+    }
+  };
+
+  // Instant 1-Click Order via WhatsApp directly for single product
+  const orderSingleProductViaWhatsApp = (product: Product, quantity = 1, selectedColor?: string): Order => {
+    const defaultAddr = currentUser?.addresses.find((a) => a.isDefault) || currentUser?.addresses[0] || {
+      id: 'addr-quick',
+      fullName: currentUser?.name || 'Customer via WhatsApp',
+      addressLine1: 'Direct WhatsApp Delivery',
+      addressLine2: 'Express Customer Fulfillment',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      postalCode: '600001',
+      country: 'India',
+      phone: '+91 93607 23382',
+    };
+
+    const subtotal = product.price * quantity;
+    const freeThreshold = settings.freeShippingThreshold || 1999;
+    const shippingCost = subtotal >= freeThreshold ? 0 : (settings.standardShippingFee || 149);
+    const tax = Math.round(subtotal * ((settings.gstRatePercent || 18) / 100));
+    const total = subtotal + shippingCost + tax;
+
+    const orderNumber = `AUR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newOrder: Order = {
+      id: 'ord-' + Date.now(),
+      orderNumber,
+      userId: currentUser?.id || 'guest-' + Date.now(),
+      customerName: defaultAddr.fullName,
+      customerEmail: currentUser?.email || 'customer@aurastore.in',
+      items: [{
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity,
+        image: product.images[0],
+        selectedColor: selectedColor || 'Standard',
+      }],
+      subtotal,
+      discount: 0,
+      shipping: shippingCost,
+      tax,
+      total,
+      shippingAddress: defaultAddr,
+      paymentMethod: 'upi',
+      paymentStatus: 'paid',
+      paymentId: `pay_wa_${Math.random().toString(36).substring(2, 10)}`,
+      status: 'pending',
+      trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      carrier: 'Blue Dart Air Express',
+      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 1. Reduce inventory
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p))
+    );
+
+    // 2. Save order to persistent store
+    setOrders((prev) => [newOrder, ...prev]);
+
+    // 3. Automatically send message to WhatsApp owner (9360723382)
+    sendOrderToWhatsApp(newOrder);
+
+    showToast(`Order #${newOrder.orderNumber} placed & sent to owner WhatsApp automatically!`, 'success');
+    return newOrder;
+  };
+
 
   // Products CRUD
   const addProduct = (newProduct: Omit<Product, 'id' | 'slug' | 'createdAt'>) => {
@@ -386,7 +573,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (cartSubtotal < found.minSpend) {
       return {
         success: false,
-        message: `This code requires a minimum spend of $${found.minSpend}. (Your subtotal is $${cartSubtotal.toFixed(2)})`,
+        message: `This coupon requires a minimum spend of ₹${found.minSpend.toLocaleString('en-IN')}. (Your subtotal is ₹${cartSubtotal.toLocaleString('en-IN')})`,
       };
     }
 
@@ -430,7 +617,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     paymentMethod: 'card' | 'stripe' | 'razorpay' | 'upi' | 'cod';
     shippingCost: number;
   }): Order => {
-    // 1. Verify stock & calculate server totals
+    // 1. Verify stock & calculate totals in Indian Rupees
     const subtotal = orderPayload.items.reduce(
       (sum, item) => sum + item.product.price * item.quantity,
       0
@@ -441,7 +628,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       discount = (subtotal * appliedCoupon.discountPercent) / 100;
     }
 
-    const tax = Number(((subtotal - discount) * 0.0825).toFixed(2));
+    // 18% standard electronic GST
+    const tax = Number(((subtotal - discount) * 0.18).toFixed(2));
     const total = Number((subtotal - discount + orderPayload.shippingCost + tax).toFixed(2));
 
     const orderNumber = `AUR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -468,11 +656,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       shippingAddress: orderPayload.shippingAddress,
       paymentMethod: orderPayload.paymentMethod,
       paymentStatus: 'paid',
-      paymentId: `pi_${Math.random().toString(36).substring(2, 12)}`,
+      paymentId: `pay_${Math.random().toString(36).substring(2, 12)}`,
       status: 'pending',
-      trackingNumber: `TRK${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-      carrier: orderPayload.shippingCost > 15 ? 'FedEx Priority Overnight' : 'UPS Ground Express',
-      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+      trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      carrier: orderPayload.shippingCost > 200 ? 'Blue Dart Air Express' : 'Delhivery Surface Express',
+      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -500,10 +688,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     clearCart();
     setAppliedCoupon(null);
 
-    // 5. Open transactional confirmation receipt
-    setEmailModalOrder(newOrder);
+    // 5. Automatically dispatch order notification to store owner WhatsApp (9360723382)
+    if (settings.enableWhatsAppAlerts !== false) {
+      sendOrderToWhatsApp(newOrder);
+    } else {
+      setEmailModalOrder(newOrder);
+    }
 
-    showToast(`Order #${newOrder.orderNumber} placed successfully!`, 'success');
+    showToast(`Order #${newOrder.orderNumber} placed! Alert automatically dispatched to WhatsApp.`, 'success');
     return newOrder;
   };
 
@@ -556,6 +748,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       name: name || (role === 'admin' ? 'Store Administrator' : email.split('@')[0]),
       email,
       role,
+      phone: currentUser?.phone || '+91 98765 43210',
       addresses: currentUser?.addresses || INITIAL_USER.addresses,
       wishlist: currentUser?.wishlist || [],
       avatar:
@@ -651,8 +844,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         orders,
         placeOrder,
+        orderSingleProductViaWhatsApp,
         updateOrderStatus,
         getOrderById,
+
+        ownerWhatsAppNumber,
+        setOwnerWhatsAppNumber: handleSetOwnerWhatsApp,
+        sendOrderToWhatsApp,
+        whatsAppNotificationOrder,
+        setWhatsAppNotificationOrder,
+        settings,
+        updateSettings,
+        resetSettingsToDefault,
 
         reviews,
         addReview,

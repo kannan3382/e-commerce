@@ -49,7 +49,7 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-bold text-white">Free Express Shipping</h4>
-              <p className="text-xs text-slate-400 mt-0.5">On all domestic orders over $99</p>
+              <p className="text-xs text-slate-400 mt-0.5">On all domestic orders over ₹1,999</p>
             </div>
           </div>
 
@@ -169,10 +169,21 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
+                <a 
+                  href="https://wa.me/919360723382?text=Hello%20AURA%20Store!%20I%20have%20an%20inquiry%20about%20products."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 hover:text-emerald-300 font-medium transition flex items-center gap-1.5"
+                >
+                  <span>WhatsApp Concierge (+91 93607 23382)</span>
+                </a>
+              </li>
+              <li>
                 <button onClick={() => navigateTo('profile')} className="hover:text-white transition">
                   Warranty Registration
                 </button>
               </li>
+
               <li>
                 <button onClick={() => setDevGuideOpen(true)} className="text-amber-400 hover:text-amber-300 font-medium transition">
                   Full-Stack Architecture

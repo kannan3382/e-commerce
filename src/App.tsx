@@ -11,6 +11,7 @@ import { ToastContainer } from './components/common/ToastContainer';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { QuickViewModal } from './components/common/QuickViewModal';
 import { EmailConfirmationModal } from './components/common/EmailConfirmationModal';
+import { WhatsAppOrderSuccessModal } from './components/common/WhatsAppOrderSuccessModal';
 import { AuthModal } from './components/auth/AuthModal';
 import { DevGuideModal } from './components/pages/DevGuideModal';
 
@@ -98,6 +99,7 @@ const AppContent: React.FC = () => {
       <CartDrawer />
       <QuickViewModal />
       <EmailConfirmationModal />
+      <WhatsAppOrderSuccessModal />
       <AuthModal />
       <DevGuideModal />
       <ToastContainer />

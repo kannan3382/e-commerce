@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, Trash2, ShoppingBag, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { formatRupees } from '../../utils/currency';
 
 export const WishlistPage: React.FC = () => {
   const { wishlist, products, toggleWishlist, addToCart, navigateToProduct, setCurrentPage } = useStore();
@@ -92,10 +93,10 @@ export const WishlistPage: React.FC = () => {
                       {p.name}
                     </h3>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="font-black text-sm text-slate-950">${p.price.toFixed(2)}</span>
+                      <span className="font-black text-sm text-slate-950">{formatRupees(p.price)}</span>
                       {p.originalPrice && (
                         <span className="text-xs text-slate-400 line-through">
-                          ${p.originalPrice.toFixed(2)}
+                          {formatRupees(p.originalPrice)}
                         </span>
                       )}
                     </div>

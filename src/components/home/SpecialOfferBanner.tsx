@@ -58,7 +58,7 @@ export const SpecialOfferBanner: React.FC = () => {
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-              Take 20% Off Orders Over $200
+              Take 20% Off Orders Over ₹15,000
             </h2>
 
             <p className="text-sm text-amber-100 max-w-lg leading-relaxed">

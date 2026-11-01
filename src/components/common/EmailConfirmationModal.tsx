@@ -11,6 +11,8 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { formatRupees, getWhatsAppOrderUrl, formatIndianPhoneNumber } from '../../utils/currency';
+
 
 export const EmailConfirmationModal: React.FC = () => {
   const { 
@@ -18,7 +20,8 @@ export const EmailConfirmationModal: React.FC = () => {
     setEmailModalOrder, 
     setTrackingOrderId, 
     setCurrentPage, 
-    showToast 
+    showToast,
+    ownerWhatsAppNumber
   } = useStore();
 
   if (!emailModalOrder) return null;
@@ -102,8 +105,34 @@ export const EmailConfirmationModal: React.FC = () => {
               Thank you for your order, {order.customerName.split(' ')[0]}!
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed">
-              We&apos;ve received your order and our hardware fulfillment team in California has commenced preparation. Your receipt and courier dispatch updates will be sent to <strong>{order.customerEmail}</strong>.
+              We&apos;ve received your order and our hardware fulfillment team has commenced preparation. Your receipt and courier dispatch updates will be sent to <strong>{order.customerEmail}</strong>.
             </p>
+          </div>
+
+          {/* WhatsApp Owner Notification Card */}
+          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Store Owner WhatsApp Notification
+              </span>
+              <span className="text-[11px] font-mono font-bold text-emerald-900 bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
+                {formatIndianPhoneNumber(ownerWhatsAppNumber)}
+              </span>
+
+            </div>
+            <p className="text-[11px] text-emerald-700">
+              Notify the store owner directly with this complete order summary, customer contact details, and item specifications on WhatsApp.
+            </p>
+            <a
+              href={getWhatsAppOrderUrl(order, ownerWhatsAppNumber)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+            >
+              <span>📲 Send Order Summary to Owner via WhatsApp</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
 
           {/* Logistics Box */}
@@ -118,6 +147,7 @@ export const EmailConfirmationModal: React.FC = () => {
               <p className="text-slate-600">
                 {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
               </p>
+              <p className="text-slate-500 text-[11px]">Phone: {order.shippingAddress.phone}</p>
             </div>
 
             <div className="space-y-1">
@@ -149,7 +179,7 @@ export const EmailConfirmationModal: React.FC = () => {
                     </div>
                   </div>
                   <span className="font-black text-slate-900">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    {formatRupees(item.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -160,27 +190,27 @@ export const EmailConfirmationModal: React.FC = () => {
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal</span>
-              <span className="font-bold text-slate-900">${order.subtotal.toFixed(2)}</span>
+              <span className="font-bold text-slate-900">{formatRupees(order.subtotal)}</span>
             </div>
             {order.discount > 0 && (
               <div className="flex justify-between text-emerald-600 font-semibold">
                 <span>Coupon Savings ({order.appliedCoupon})</span>
-                <span>-${order.discount.toFixed(2)}</span>
+                <span>-{formatRupees(order.discount)}</span>
               </div>
             )}
             <div className="flex justify-between text-slate-600">
               <span>Shipping ({order.carrier})</span>
               <span className="font-bold text-slate-900">
-                {order.shipping === 0 ? 'FREE' : `$${order.shipping.toFixed(2)}`}
+                {order.shipping === 0 ? 'FREE' : formatRupees(order.shipping)}
               </span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Sales Tax (8.25%)</span>
-              <span className="font-bold text-slate-900">${order.tax.toFixed(2)}</span>
+              <span>GST (18%)</span>
+              <span className="font-bold text-slate-900">{formatRupees(order.tax)}</span>
             </div>
             <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-black text-slate-950">
               <span>Total Paid</span>
-              <span>${order.total.toFixed(2)}</span>
+              <span>{formatRupees(order.total)}</span>
             </div>
           </div>
 

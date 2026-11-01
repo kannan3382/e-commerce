@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { formatRupees } from '../../utils/currency';
 
 export const CartPage: React.FC = () => {
   const { 
@@ -33,20 +34,20 @@ export const CartPage: React.FC = () => {
   const [couponError, setCouponError] = useState('');
   const [shippingOption, setShippingOption] = useState<'standard' | 'express' | 'overnight'>('standard');
 
-  const FREE_SHIPPING_THRESHOLD = 99;
+  const FREE_SHIPPING_THRESHOLD = 1999;
   const isFreeStandard = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
 
   const shippingCost = 
-    shippingOption === 'overnight' ? 29 :
-    shippingOption === 'express' ? 18 :
-    isFreeStandard ? 0 : 9.99;
+    shippingOption === 'overnight' ? 499 :
+    shippingOption === 'express' ? 299 :
+    isFreeStandard ? 0 : 149;
 
   const discountAmount = appliedCoupon 
     ? (cartSubtotal * appliedCoupon.discountPercent) / 100 
     : 0;
 
-  const estimatedTax = Number(((cartSubtotal - discountAmount) * 0.0825).toFixed(2));
-  const estimatedTotal = Number((cartSubtotal - discountAmount + shippingCost + estimatedTax).toFixed(2));
+  const estimatedTax = Math.round((cartSubtotal - discountAmount) * 0.18);
+  const estimatedTotal = Math.round(cartSubtotal - discountAmount + shippingCost + estimatedTax);
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +151,7 @@ export const CartPage: React.FC = () => {
                       <p className="text-xs text-slate-500">Finish: {item.selectedColor}</p>
                     )}
                     <p className="text-xs font-semibold text-slate-700">
-                      ${item.product.price.toFixed(2)} each
+                      {formatRupees(item.product.price)} each
                     </p>
                   </div>
 
@@ -177,8 +178,8 @@ export const CartPage: React.FC = () => {
                       </button>
                     </div>
 
-                    <span className="text-sm font-black text-slate-950 w-20 text-right">
-                      ${(item.product.price * item.quantity).toFixed(2)}
+                    <span className="text-sm font-black text-slate-950 w-24 text-right">
+                      {formatRupees(item.product.price * item.quantity)}
                     </span>
 
                     <button
@@ -265,10 +266,10 @@ export const CartPage: React.FC = () => {
                         onChange={() => setShippingOption('standard')}
                         className="accent-slate-950"
                       />
-                      <span>Standard Ground (3-5 days)</span>
+                      <span>Standard Ground (Delhivery/Blue Dart 3-5 days)</span>
                     </div>
                     <span className="font-bold">
-                      {isFreeStandard ? <span className="text-emerald-600">FREE</span> : '$9.99'}
+                      {isFreeStandard ? <span className="text-emerald-600">FREE</span> : formatRupees(149)}
                     </span>
                   </label>
 
@@ -281,9 +282,9 @@ export const CartPage: React.FC = () => {
                         onChange={() => setShippingOption('express')}
                         className="accent-slate-950"
                       />
-                      <span>UPS 2-Day Air</span>
+                      <span>Blue Dart Air Express (1-2 days)</span>
                     </div>
-                    <span className="font-bold">$18.00</span>
+                    <span className="font-bold">{formatRupees(299)}</span>
                   </label>
 
                   <label className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
@@ -295,9 +296,9 @@ export const CartPage: React.FC = () => {
                         onChange={() => setShippingOption('overnight')}
                         className="accent-slate-950"
                       />
-                      <span>FedEx Priority Overnight</span>
+                      <span>Same-Day / Priority Courier</span>
                     </div>
-                    <span className="font-bold">$29.00</span>
+                    <span className="font-bold">{formatRupees(499)}</span>
                   </label>
                 </div>
               </div>
@@ -306,31 +307,31 @@ export const CartPage: React.FC = () => {
               <div className="pt-4 border-t border-slate-100 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal</span>
-                  <span className="font-bold text-slate-900">${cartSubtotal.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">{formatRupees(cartSubtotal)}</span>
                 </div>
 
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-600 font-semibold">
                     <span>Discount ({appliedCoupon.discountPercent}%)</span>
-                    <span>-${discountAmount.toFixed(2)}</span>
+                    <span>-{formatRupees(discountAmount)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between text-slate-600">
                   <span>Shipping</span>
                   <span className="font-bold text-slate-900">
-                    {shippingCost === 0 ? <span className="text-emerald-600">FREE</span> : `$${shippingCost.toFixed(2)}`}
+                    {shippingCost === 0 ? <span className="text-emerald-600">FREE</span> : formatRupees(shippingCost)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-slate-600">
-                  <span>Estimated Sales Tax (8.25%)</span>
-                  <span className="font-bold text-slate-900">${estimatedTax.toFixed(2)}</span>
+                  <span>Estimated GST (18%)</span>
+                  <span className="font-bold text-slate-900">{formatRupees(estimatedTax)}</span>
                 </div>
 
                 <div className="pt-3 border-t border-slate-200 flex justify-between text-base font-black text-slate-950">
                   <span>Estimated Total</span>
-                  <span>${estimatedTotal.toFixed(2)}</span>
+                  <span>{formatRupees(estimatedTotal)}</span>
                 </div>
               </div>
 

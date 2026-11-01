@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Star, Heart, ShoppingBag, ShieldCheck, Truck, ArrowRight } from 'lucide-react';
+import { X, Star, Heart, ShoppingBag, ShieldCheck, Truck, ArrowRight, MessageSquare } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { formatRupees } from '../../utils/currency';
 
 export const QuickViewModal: React.FC = () => {
   const { 
@@ -9,7 +10,8 @@ export const QuickViewModal: React.FC = () => {
     addToCart, 
     toggleWishlist, 
     isInWishlist, 
-    navigateToProduct 
+    navigateToProduct,
+    orderSingleProductViaWhatsApp
   } = useStore();
 
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
@@ -99,11 +101,11 @@ export const QuickViewModal: React.FC = () => {
               {/* Price */}
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl font-black text-slate-950">
-                  ${product.price.toFixed(2)}
+                  {formatRupees(product.price)}
                 </span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <span className="text-sm text-slate-600 line-through">
-                    ${product.originalPrice.toFixed(2)}
+                    {formatRupees(product.originalPrice)}
                   </span>
                 )}
                 <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md">
@@ -153,7 +155,7 @@ export const QuickViewModal: React.FC = () => {
                   className="flex-1 py-3 px-5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>Add to Bag - ${(product.price * qty).toFixed(2)}</span>
+                  <span>Add to Bag — {formatRupees(product.price * qty)}</span>
                 </button>
 
                 {/* Wishlist */}
@@ -168,6 +170,19 @@ export const QuickViewModal: React.FC = () => {
                   <Heart className={`w-4 h-4 ${isFavorited ? 'fill-rose-500' : ''}`} />
                 </button>
               </div>
+
+              {/* Order via WhatsApp */}
+              <button
+                onClick={() => {
+                  orderSingleProductViaWhatsApp(product, qty);
+                  setQuickViewProduct(null);
+                }}
+                disabled={product.stock <= 0}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition active:scale-98"
+              >
+                <MessageSquare className="w-4 h-4 fill-white" />
+                <span>Order on WhatsApp directly (+91 93607 23382)</span>
+              </button>
 
               <button
                 onClick={handleViewFullDetails}

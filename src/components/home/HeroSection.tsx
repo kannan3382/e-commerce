@@ -150,10 +150,10 @@ export const HeroSection: React.FC = () => {
 
                 <div className="pt-2 flex items-center justify-between">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-black text-white">$349</span>
-                    <span className="text-xs text-slate-500 line-through">$399</span>
+                    <span className="text-2xl font-black text-white">₹24,999</span>
+                    <span className="text-xs text-slate-500 line-through">₹29,999</span>
                     <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                      SAVE $50
+                      SAVE ₹5,000
                     </span>
                   </div>
 

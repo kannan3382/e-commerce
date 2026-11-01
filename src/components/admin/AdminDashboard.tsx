@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Package, 
@@ -19,10 +19,30 @@ import {
   AlertTriangle,
   ArrowRight,
   Eye,
-  FileText
+  FileText,
+  Settings,
+  MessageSquare,
+  Send,
+  Save,
+  RotateCcw,
+  Building,
+  PhoneCall,
+  Mail,
+  Receipt,
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
-import { Product, Order, OrderStatus, Coupon } from '../../types';
+import { Product, Order, OrderStatus, Coupon, StoreSettings } from '../../types';
+import { 
+  formatRupees, 
+  getWhatsAppOrderUrl, 
+  getWhatsAppTestUrl, 
+  formatIndianPhoneNumber, 
+  normalizeWhatsAppNumber 
+} from '../../utils/currency';
+import { INITIAL_STORE_SETTINGS } from '../../data/mockData';
+
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -39,10 +59,21 @@ export const AdminDashboard: React.FC = () => {
     setCurrentPage, 
     navigateToProduct,
     setEmailModalOrder,
-    showToast 
+    showToast,
+    ownerWhatsAppNumber,
+    setOwnerWhatsAppNumber,
+    settings,
+    updateSettings,
+    resetSettingsToDefault
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'discounts' | 'customers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'discounts' | 'customers' | 'settings'>('overview');
+  const [settingsForm, setSettingsForm] = useState<StoreSettings>(settings);
+
+  useEffect(() => {
+    setSettingsForm(settings);
+  }, [settings]);
+
 
   // Search & filter for products in admin
   const [productSearch, setProductSearch] = useState('');
@@ -55,8 +86,8 @@ export const AdminDashboard: React.FC = () => {
     name: '',
     brand: 'AURA Labs',
     category: 'Audio & Acoustics',
-    price: 199,
-    originalPrice: 249,
+    price: 19999,
+    originalPrice: 24999,
     stock: 20,
     shortDescription: '',
     description: '',
@@ -71,7 +102,7 @@ export const AdminDashboard: React.FC = () => {
   const [newCouponForm, setNewCouponForm] = useState({
     code: '',
     discountPercent: 15,
-    minSpend: 100,
+    minSpend: 2500,
     description: 'Holiday promotional discount',
     expiresAt: '2026-12-31',
   });
@@ -109,10 +140,17 @@ export const AdminDashboard: React.FC = () => {
       return;
     }
 
+    const enteredPrice = Number(productForm.price);
+    if (isNaN(enteredPrice) || enteredPrice < 100) {
+      showToast('Product price must be at least ₹100 as per store catalog policy.', 'error');
+      return;
+    }
+
     const imagesArray = productForm.images
       .split(',')
       .map((url) => url.trim())
       .filter((url) => url.length > 0);
+
 
     if (editingProductId) {
       updateProduct(editingProductId, {
@@ -235,15 +273,70 @@ export const AdminDashboard: React.FC = () => {
           </button>
         </div>
 
+        {/* Owner WhatsApp Order Alert Bar */}
+        <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📲</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-extrabold text-emerald-950">
+                  Store Owner WhatsApp Order Alerts
+                </h4>
+                <span className="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  Live Active
+                </span>
+                <span className="bg-emerald-100 text-emerald-900 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border border-emerald-300">
+                  {formatIndianPhoneNumber(ownerWhatsAppNumber)}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                New customer orders generate instant WhatsApp message summaries with order ID, customer phone, address, and line items.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200 shadow-2xs">
+              <label className="text-[11px] font-bold text-slate-600 whitespace-nowrap">Owner Phone:</label>
+              <input
+                type="text"
+                value={ownerWhatsAppNumber}
+                onChange={(e) => setOwnerWhatsAppNumber(e.target.value)}
+                placeholder="e.g. 9360723382"
+                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-600 w-36"
+              />
+              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">Saved</span>
+            </div>
+
+            <button
+              onClick={() => window.open(getWhatsAppTestUrl(ownerWhatsAppNumber), '_blank')}
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs"
+              title="Send a live test message to WhatsApp"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Test WhatsApp</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('settings')}
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Settings</span>
+            </button>
+          </div>
+        </div>
+
+
         {/* Core KPI Metrics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-              <DollarSign className="w-6 h-6" />
+              <span className="text-xl font-black">₹</span>
             </div>
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Total Revenue</span>
-              <h3 className="text-2xl font-black text-slate-950">${totalRevenue.toFixed(2)}</h3>
+              <h3 className="text-2xl font-black text-slate-950">{formatRupees(totalRevenue)}</h3>
               <span className="text-[10px] text-emerald-800 font-bold flex items-center gap-0.5">
                 <TrendingUp className="w-3 h-3" /> +14.2% this month
               </span>
@@ -258,7 +351,7 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Orders Processed</span>
               <h3 className="text-2xl font-black text-slate-950">{orders.length}</h3>
               <span className="text-[10px] text-slate-600 font-semibold">
-                Avg order: ${averageOrderValue.toFixed(2)}
+                Avg order: {formatRupees(averageOrderValue)}
               </span>
             </div>
           </div>
@@ -294,7 +387,9 @@ export const AdminDashboard: React.FC = () => {
             { id: 'orders', label: `Customer Orders (${orders.length})`, icon: ShoppingBag },
             { id: 'discounts', label: `Coupons & Discounts (${coupons.length})`, icon: Tag },
             { id: 'customers', label: 'Customers Roster', icon: Users },
+            { id: 'settings', label: 'Store & WhatsApp Settings', icon: Settings },
           ].map((tab) => {
+
             const Icon = tab.icon;
             return (
               <button
@@ -343,12 +438,12 @@ export const AdminDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-100">
                     {orders.slice(0, 5).map((order) => (
                       <tr key={order.id} className="hover:bg-slate-50/80">
-                        <td className="p-3 font-mono font-bold text-slate-900">{order.orderNumber}</td>
+                        <td className="p-3 font-mono font-bold text-slate-900">#{order.orderNumber}</td>
                         <td className="p-3">
                           <p className="font-bold text-slate-900">{order.customerName}</p>
                           <p className="text-[11px] text-slate-500">{order.customerEmail}</p>
                         </td>
-                        <td className="p-3 font-black text-slate-950">${order.total.toFixed(2)}</td>
+                        <td className="p-3 font-black text-slate-950">{formatRupees(order.total)}</td>
                         <td className="p-3">
                           <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             order.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
@@ -359,10 +454,19 @@ export const AdminDashboard: React.FC = () => {
                             {order.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right space-x-2">
+                        <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                          <a
+                            href={getWhatsAppOrderUrl(order, ownerWhatsAppNumber)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg inline-flex items-center"
+                            title="Send Order Details to Owner via WhatsApp"
+                          >
+                            <span>📲</span>
+                          </a>
                           <button
                             onClick={() => setEmailModalOrder(order)}
-                            className="p-1.5 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-lg"
+                            className="p-1.5 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-lg inline-flex items-center"
                             title="View Receipt"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -387,8 +491,8 @@ export const AdminDashboard: React.FC = () => {
                         name: '',
                         brand: 'AURA Labs',
                         category: 'Audio & Acoustics',
-                        price: 199,
-                        originalPrice: 249,
+                        price: 19999,
+                        originalPrice: 24999,
                         stock: 25,
                         shortDescription: '',
                         description: '',
@@ -429,7 +533,7 @@ export const AdminDashboard: React.FC = () => {
                     <div key={p.id} className="pt-2 first:pt-0 flex items-center justify-between text-xs">
                       <div className="truncate flex-1 mr-2">
                         <p className="font-bold text-slate-900 truncate">{p.name}</p>
-                        <p className="text-[11px] text-slate-500">${p.price}</p>
+                        <p className="text-[11px] text-slate-500">{formatRupees(p.price)}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="font-black text-rose-600 text-xs">{p.stock} left</span>
@@ -536,7 +640,7 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3 text-slate-600">{p.category}</td>
-                      <td className="p-3 font-black text-slate-950">${p.price.toFixed(2)}</td>
+                      <td className="p-3 font-black text-slate-950">{formatRupees(p.price)}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <span className={`font-bold ${p.stock <= 5 ? 'text-rose-600' : 'text-slate-900'}`}>
@@ -589,7 +693,10 @@ export const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-6">
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-base font-bold text-slate-950">Customer Order Queue</h2>
+              <div>
+                <h2 className="text-base font-bold text-slate-950">Customer Order Queue</h2>
+                <p className="text-xs text-slate-500">Manage order fulfillment, delivery statuses, and WhatsApp notifications to the owner.</p>
+              </div>
               
               {/* Status Filter */}
               <div className="flex items-center gap-2 text-xs">
@@ -618,7 +725,7 @@ export const AdminDashboard: React.FC = () => {
                     <th className="p-3">Items Count</th>
                     <th className="p-3">Payment</th>
                     <th className="p-3">Status Management</th>
-                    <th className="p-3 text-right">Invoice</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -641,7 +748,7 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-3">
-                        <span className="font-black text-slate-950">${order.total.toFixed(2)}</span>
+                        <span className="font-black text-slate-950">{formatRupees(order.total)}</span>
                         <span className="block text-[10px] text-emerald-700 font-bold uppercase">
                           {order.paymentMethod} • {order.paymentStatus}
                         </span>
@@ -664,10 +771,19 @@ export const AdminDashboard: React.FC = () => {
                           <option value="cancelled">Cancelled</option>
                         </select>
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right whitespace-nowrap space-x-1.5">
+                        <a
+                          href={getWhatsAppOrderUrl(order, ownerWhatsAppNumber)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold inline-flex items-center gap-1"
+                          title="Send Order Details to Owner via WhatsApp"
+                        >
+                          <span>📲 WhatsApp</span>
+                        </a>
                         <button
                           onClick={() => setEmailModalOrder(order)}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold"
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold"
                         >
                           Receipt
                         </button>
@@ -722,7 +838,7 @@ export const AdminDashboard: React.FC = () => {
                   <h4 className="text-xl font-black text-slate-950">{c.discountPercent}% OFF</h4>
                   <p className="text-xs text-slate-600 mt-1">{c.description}</p>
                   <p className="text-[11px] text-slate-400 mt-2">
-                    Min spend: ${c.minSpend} • Expires: {c.expiresAt}
+                    Min spend: {formatRupees(c.minSpend)} • Expires: {c.expiresAt}
                   </p>
                 </div>
               ))}
@@ -750,14 +866,14 @@ export const AdminDashboard: React.FC = () => {
                     <td className="p-3 font-bold text-slate-900">Alex Morgan</td>
                     <td className="p-3 text-slate-600">alex@example.com</td>
                     <td className="p-3 font-bold">{orders.length} orders</td>
-                    <td className="p-3 font-black text-slate-950">${totalRevenue.toFixed(2)}</td>
+                    <td className="p-3 font-black text-slate-950">{formatRupees(totalRevenue)}</td>
                     <td className="p-3"><span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Active VIP</span></td>
                   </tr>
                   <tr className="hover:bg-slate-50">
                     <td className="p-3 font-bold text-slate-900">Elena Rostova</td>
                     <td className="p-3 text-slate-600">elena.sound@studio.org</td>
                     <td className="p-3 font-bold">3 orders</td>
-                    <td className="p-3 font-black text-slate-950">$840.00</td>
+                    <td className="p-3 font-black text-slate-950">{formatRupees(84000)}</td>
                     <td className="p-3"><span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded">Member</span></td>
                   </tr>
                 </tbody>
@@ -766,7 +882,379 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* TAB 6: STORE & WHATSAPP SETTINGS */}
+        {activeTab === 'settings' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            {/* Header description */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-slate-100 rounded-xl text-slate-900">
+                    <Settings className="w-5 h-5" />
+                  </span>
+                  <h3 className="text-xl font-black text-slate-950">Store & WhatsApp Settings</h3>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                    Active Production
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-2 max-w-2xl leading-relaxed">
+                  Manage store contact details, instant WhatsApp order notifications to owner phone <strong>9360723382</strong>, minimum product and checkout rules (min ₹100), shipping policies, and GST tax percentages.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetSettingsToDefault();
+                    setSettingsForm(INITIAL_STORE_SETTINGS);
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Reset Defaults</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateSettings(settingsForm)}
+                  className="px-6 py-2.5 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Settings</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column: WhatsApp and Rules */}
+              <div className="lg:col-span-7 space-y-8">
+                {/* 1. WhatsApp Configuration Card */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                        <MessageSquare className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-slate-950">WhatsApp Order Alerts Gateway</h4>
+                        <p className="text-[11px] text-slate-500">Live order notifications routed to store owner</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      {formatIndianPhoneNumber(settingsForm.ownerWhatsApp)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Store Owner WhatsApp Number *
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                            +91
+                          </span>
+                          <input
+                            type="text"
+                            value={settingsForm.ownerWhatsApp}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, ownerWhatsApp: e.target.value })
+                            }
+                            placeholder="9360723382"
+                            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => window.open(getWhatsAppTestUrl(settingsForm.ownerWhatsApp), '_blank')}
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Test Ping</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1.5">
+                        Indian 10-digit mobile numbers are automatically formatted with country code (919360723382) for WhatsApp API dispatch.
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                        <input
+                          type="checkbox"
+                          checked={settingsForm.enableWhatsAppAlerts}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, enableWhatsAppAlerts: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 block">
+                            Auto-Generate Owner WhatsApp Alert on Order Placement
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            Presents an instant 1-click WhatsApp message prompt right after customer checkout.
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* WhatsApp Message Preview */}
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-2">
+                        Live Message Format Preview
+                      </span>
+                      <div className="bg-emerald-950 text-emerald-100 p-4 rounded-2xl text-[11px] font-mono leading-relaxed space-y-1 shadow-inner border border-emerald-900">
+                        <p className="font-bold text-emerald-300">🛍️ NEW ORDER RECEIVED — AURA E-COMMERCE 🛍️</p>
+                        <p className="text-emerald-400/80">━━━━━━━━━━━━━━━━━━━━━━</p>
+                        <p>📦 Order ID: #AUR-2026-9481</p>
+                        <p>👤 Customer: Alex Morgan (+91 98765 43210)</p>
+                        <p>📍 Address: 42 Palm Avenue, Indiranagar, Bengaluru - 560038</p>
+                        <p className="pt-1 font-semibold text-emerald-200">🛒 Ordered Items:</p>
+                        <p>1. AURA Microfiber Cleaning Cloth (Qty: 2) — ₹200</p>
+                        <p>2. AURA Magnetic Silicone Cable Organizers (Qty: 1) — ₹149</p>
+                        <p className="pt-1 font-bold text-emerald-300">💰 Grand Total: ₹349 (UPI / PAID)</p>
+                        <p className="text-emerald-400/80">━━━━━━━━━━━━━━━━━━━━━━</p>
+                        <p className="text-[10px] text-emerald-400 italic">Dispatched to Owner Phone: {settingsForm.ownerWhatsApp || '9360723382'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Catalog & Pricing Rules Card */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                  <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                      <Receipt className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-950">Catalog Pricing & Minimum Rules</h4>
+                      <p className="text-[11px] text-slate-500">Price floor policies, shipping tiers and tax setup</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Minimum Product Price (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        min="100"
+                        value={settingsForm.minProductPrice}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, minProductPrice: Math.max(100, Number(e.target.value)) })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">Catalog floor: Cannot sell below ₹100</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Minimum Order Value (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        min="100"
+                        value={settingsForm.minOrderValue}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, minOrderValue: Math.max(100, Number(e.target.value)) })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">Cart checkout minimum: ₹100</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Free Shipping Threshold (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={settingsForm.freeShippingThreshold}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, freeShippingThreshold: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">Cart value for free delivery</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Standard Ground Shipping (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={settingsForm.standardShippingFee}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, standardShippingFee: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">Applied on orders under free limit</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Applicable GST Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={settingsForm.gstRatePercent}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, gstRatePercent: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">Standard rate: 18% for electronics</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">
+                        Low Stock Alert Threshold
+                      </label>
+                      <input
+                        type="number"
+                        value={settingsForm.lowStockThreshold}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, lowStockThreshold: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">Triggers low stock warnings</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Business Profile & Summary */}
+              <div className="lg:col-span-5 space-y-8">
+                {/* 3. Business Profile Card */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                  <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                      <Building className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-950">Store Profile & Helpline</h4>
+                      <p className="text-[11px] text-slate-500">Legal branding, tax and support info</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">Store Legal Name</label>
+                      <input
+                        type="text"
+                        value={settingsForm.storeName}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, storeName: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">Support Email Address</label>
+                      <input
+                        type="email"
+                        value={settingsForm.supportEmail}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, supportEmail: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">Customer Support Helpline</label>
+                      <input
+                        type="text"
+                        value={settingsForm.supportPhone}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, supportPhone: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">GSTIN Tax Registration</label>
+                      <input
+                        type="text"
+                        value={settingsForm.gstNumber}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, gstNumber: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block mb-1">Registered Store Address</label>
+                      <textarea
+                        rows={3}
+                        value={settingsForm.storeAddress}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, storeAddress: e.target.value })
+                        }
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                        <input
+                          type="checkbox"
+                          checked={settingsForm.enableCod}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, enableCod: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-slate-950 rounded cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 block">
+                            Allow Cash on Delivery (COD) Checkout
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            Available alongside UPI and Cards in checkout.
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Confirmation Button */}
+                <div className="bg-slate-950 text-white rounded-3xl p-6 shadow-md space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                      <Check className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-white">Save Changes to Store</h4>
+                      <p className="text-[11px] text-slate-400">Settings synchronize across your browser sessions</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateSettings(settingsForm)}
+                    className="w-full py-3 bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Apply & Save All Store Settings</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
+
 
       {/* Add / Edit Product Modal */}
       {showAddProductModal && (
@@ -819,18 +1307,21 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-700">Price ($) *</label>
+                <label className="text-xs font-bold text-slate-700">Price (₹) * (Min ₹100)</label>
                 <input
                   type="number"
+                  min="100"
                   value={productForm.price}
                   onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
                   className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  placeholder="Min ₹100"
                   required
                 />
               </div>
 
+
               <div>
-                <label className="text-xs font-bold text-slate-700">Compare-at Price ($)</label>
+                <label className="text-xs font-bold text-slate-700">Compare-at Price (₹)</label>
                 <input
                   type="number"
                   value={productForm.originalPrice}
@@ -959,7 +1450,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700">Min Spend ($)</label>
+                <label className="text-xs font-bold text-slate-700">Min Spend (₹)</label>
                 <input
                   type="number"
                   value={newCouponForm.minSpend}

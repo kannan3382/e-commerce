@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { PageRoute } from '../../types';
+import { formatRupees } from '../../utils/currency';
 
 export const Navbar: React.FC = () => {
   const {
@@ -92,7 +93,7 @@ export const Navbar: React.FC = () => {
               Special Offer
             </span>
             <span className="truncate">
-              Enjoy <strong>20% OFF</strong> orders over $200 with code <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">SAVE20</code>
+              Enjoy <strong>20% OFF</strong> orders over ₹15,000 with code <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">SAVE20</code>
             </span>
           </div>
           <div className="hidden md:flex items-center gap-4 text-slate-400">
@@ -104,7 +105,7 @@ export const Navbar: React.FC = () => {
               <span>Full-Stack Architecture & Guides</span>
             </button>
             <span className="text-slate-600">|</span>
-            <span>Free Global Express over $99</span>
+            <span>Free Express Delivery over ₹1,999</span>
           </div>
         </div>
       </div>
@@ -221,7 +222,7 @@ export const Navbar: React.FC = () => {
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-slate-600">{product.category}</span>
-                            <span className="text-xs font-semibold text-slate-900">${product.price}</span>
+                            <span className="text-xs font-semibold text-slate-900">{formatRupees(product.price)}</span>
                           </div>
                         </div>
                         <ArrowRight className="w-4 h-4 text-slate-600 shrink-0" />
@@ -289,7 +290,7 @@ export const Navbar: React.FC = () => {
                 )}
               </div>
               <span className="hidden md:inline-block text-xs font-bold text-slate-900">
-                ${cartSubtotal.toFixed(2)}
+                {formatRupees(cartSubtotal)}
               </span>
             </button>
 

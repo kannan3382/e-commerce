@@ -14,6 +14,7 @@ import {
 import { useStore } from '../../context/StoreContext';
 import { ProductCard } from './ProductCard';
 import { Product } from '../../types';
+import { formatRupees } from '../../utils/currency';
 
 export const ShopPage: React.FC = () => {
   const { 
@@ -93,7 +94,7 @@ export const ShopPage: React.FC = () => {
     filterState.category !== 'all' ||
     filterState.brand !== 'all' ||
     filterState.minPrice > 0 ||
-    filterState.maxPrice < 2000 ||
+    filterState.maxPrice < 200000 ||
     filterState.minRating > 0 ||
     filterState.inStockOnly;
 
@@ -206,10 +207,10 @@ export const ShopPage: React.FC = () => {
               </span>
             )}
 
-            {(filterState.minPrice > 0 || filterState.maxPrice < 2000) && (
+            {(filterState.minPrice > 0 || filterState.maxPrice < 200000) && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white rounded-lg border border-amber-200 text-amber-900 font-medium">
-                Price: ${filterState.minPrice} – ${filterState.maxPrice}
-                <button onClick={() => setFilterState((p) => ({ ...p, minPrice: 0, maxPrice: 2000 }))}>
+                Price: {formatRupees(filterState.minPrice)} – {formatRupees(filterState.maxPrice)}
+                <button onClick={() => setFilterState((p) => ({ ...p, minPrice: 0, maxPrice: 200000 }))}>
                   <X className="w-3 h-3 hover:text-rose-500" />
                 </button>
               </span>
@@ -309,25 +310,26 @@ export const ShopPage: React.FC = () => {
                     Max Price
                   </label>
                   <span className="text-xs font-extrabold text-slate-950">
-                    ${filterState.maxPrice}
+                    {formatRupees(filterState.maxPrice)}
                   </span>
                 </div>
                 <input
                   type="range"
-                  min="50"
-                  max="2000"
-                  step="25"
+                  min="100"
+                  max="200000"
+                  step="50"
                   value={filterState.maxPrice}
                   onChange={(e) =>
                     setFilterState((p) => ({ ...p, maxPrice: Number(e.target.value) }))
                   }
                   className="w-full accent-slate-950 cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] text-slate-600">
-                  <span>$50</span>
-                  <span>$2,000</span>
+                <div className="flex justify-between text-[11px] text-slate-600 font-medium">
+                  <span>{formatRupees(100)} (Min)</span>
+                  <span>{formatRupees(200000)}</span>
                 </div>
               </div>
+
 
               {/* Brands */}
               <div className="space-y-2 pt-4 border-t border-slate-100">
@@ -473,11 +475,11 @@ export const ShopPage: React.FC = () => {
 
                       <div className="flex items-center justify-center sm:justify-start gap-3 pt-1">
                         <span className="text-lg font-black text-slate-950">
-                          ${product.price.toFixed(2)}
+                          {formatRupees(product.price)}
                         </span>
                         {product.originalPrice && (
                           <span className="text-xs text-slate-400 line-through">
-                            ${product.originalPrice.toFixed(2)}
+                            {formatRupees(product.originalPrice)}
                           </span>
                         )}
                         <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
@@ -559,18 +561,23 @@ export const ShopPage: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-xs font-bold text-slate-700">
                     <span>Max Price</span>
-                    <span>${filterState.maxPrice}</span>
+                    <span>{formatRupees(filterState.maxPrice)}</span>
                   </div>
                   <input
                     type="range"
-                    min="50"
-                    max="2000"
-                    step="25"
+                    min="100"
+                    max="200000"
+                    step="50"
                     value={filterState.maxPrice}
                     onChange={(e) => setFilterState((p) => ({ ...p, maxPrice: Number(e.target.value) }))}
                     className="w-full mt-2 accent-slate-950"
                   />
+                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                    <span>{formatRupees(100)}</span>
+                    <span>{formatRupees(200000)}</span>
+                  </div>
                 </div>
+
               </div>
             </div>
 

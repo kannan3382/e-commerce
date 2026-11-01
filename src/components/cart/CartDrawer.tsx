@@ -12,6 +12,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { formatRupees } from '../../utils/currency';
 
 export const CartDrawer: React.FC = () => {
   const { 
@@ -25,7 +26,8 @@ export const CartDrawer: React.FC = () => {
     applyCoupon, 
     removeCoupon,
     setCurrentPage,
-    navigateToProduct
+    navigateToProduct,
+    settings
   } = useStore();
 
   const [couponInput, setCouponInput] = useState('');
@@ -33,9 +35,10 @@ export const CartDrawer: React.FC = () => {
 
   if (!isCartOpen) return null;
 
-  const FREE_SHIPPING_THRESHOLD = 99;
+  const FREE_SHIPPING_THRESHOLD = settings?.freeShippingThreshold || 1999;
   const progressToFreeShipping = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
+
 
   const discountAmount = appliedCoupon 
     ? (cartSubtotal * appliedCoupon.discountPercent) / 100 
@@ -103,7 +106,7 @@ export const CartDrawer: React.FC = () => {
                   <strong className="text-emerald-700">You unlocked Free Express Shipping!</strong>
                 ) : (
                   <span>
-                    Add <strong>${remainingForFreeShipping.toFixed(2)}</strong> more for Free Shipping
+                    Add <strong>{formatRupees(remainingForFreeShipping)}</strong> more for Free Shipping
                   </span>
                 )}
               </span>
@@ -195,7 +198,7 @@ export const CartDrawer: React.FC = () => {
 
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-bold text-slate-900">
-                          ${(item.product.price * item.quantity).toFixed(2)}
+                          {formatRupees(item.product.price * item.quantity)}
                         </span>
                         <button
                           onClick={() => removeFromCart(item.product.id)}
@@ -234,7 +237,7 @@ export const CartDrawer: React.FC = () => {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Promo code (try SAVE20)"
+                      placeholder="Promo code (try FESTIVE20)"
                       value={couponInput}
                       onChange={(e) => setCouponInput(e.target.value)}
                       className="flex-1 px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-slate-950 focus:outline-none"
@@ -256,12 +259,12 @@ export const CartDrawer: React.FC = () => {
               <div className="space-y-1.5 text-xs pt-1">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-slate-900">${cartSubtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-slate-900">{formatRupees(cartSubtotal)}</span>
                 </div>
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-600 font-medium">
                     <span>Discount ({appliedCoupon.discountPercent}%)</span>
-                    <span>-${discountAmount.toFixed(2)}</span>
+                    <span>-{formatRupees(discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-slate-600">
@@ -276,7 +279,7 @@ export const CartDrawer: React.FC = () => {
                 </div>
                 <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-bold text-slate-950">
                   <span>Estimated Total</span>
-                  <span>${(cartSubtotal - discountAmount).toFixed(2)}</span>
+                  <span>{formatRupees(cartSubtotal - discountAmount)}</span>
                 </div>
               </div>
 

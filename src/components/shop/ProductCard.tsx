@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, Heart, ShoppingBag, Eye, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { useStore } from '../../context/StoreContext';
+import { formatRupees } from '../../utils/currency';
 
 interface ProductCardProps {
   product: Product;
@@ -130,11 +131,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-base font-extrabold text-slate-950">
-                ${product.price.toFixed(2)}
+                {formatRupees(product.price)}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <span className="text-xs text-slate-600 line-through">
-                  ${product.originalPrice.toFixed(2)}
+                  {formatRupees(product.originalPrice)}
                 </span>
               )}
             </div>

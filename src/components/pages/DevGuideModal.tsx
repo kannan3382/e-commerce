@@ -4,7 +4,7 @@ import { useStore } from '../../context/StoreContext';
 
 export const DevGuideModal: React.FC = () => {
   const { devGuideOpen, setDevGuideOpen, showToast } = useStore();
-  const [activeTab, setActiveTab] = useState<'prisma' | 'api' | 'env' | 'deploy'>('prisma');
+  const [activeTab, setActiveTab] = useState<'java' | 'prisma' | 'api' | 'env' | 'deploy'>('java');
   const [copied, setCopied] = useState(false);
 
   if (!devGuideOpen) return null;
@@ -350,19 +350,20 @@ export async function POST(req: NextRequest) {
         </div>
 
         {/* Tab switchers */}
-        <div className="flex bg-slate-950 border-b border-slate-800 px-6 gap-2 pt-2">
+        <div className="flex bg-slate-950 border-b border-slate-800 px-6 gap-2 pt-2 overflow-x-auto">
           {[
-            { id: 'prisma', label: '1. Prisma Schema (PostgreSQL)', icon: Database },
-            { id: 'api', label: '2. Next.js Server API Route', icon: Server },
-            { id: 'env', label: '3. Environment Template (.env)', icon: Key },
-            { id: 'deploy', label: '4. Deployment Guide', icon: Code2 },
+            { id: 'java', label: '☕ 1. Java Spring Boot Backend', icon: Server },
+            { id: 'prisma', label: '2. Prisma Schema (PostgreSQL)', icon: Database },
+            { id: 'api', label: '3. Express / Node API', icon: Code2 },
+            { id: 'env', label: '4. Environment (.env)', icon: Key },
+            { id: 'deploy', label: '5. Deployment Guide', icon: FileText },
           ].map((t) => {
             const Icon = t.icon;
             return (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id as any)}
-                className={`px-4 py-2.5 text-xs font-bold rounded-t-xl flex items-center gap-2 transition border-b-2 ${
+                className={`px-4 py-2.5 text-xs font-bold rounded-t-xl flex items-center gap-2 transition border-b-2 whitespace-nowrap ${
                   activeTab === t.id
                     ? 'bg-slate-900 text-amber-400 border-amber-400'
                     : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -377,6 +378,74 @@ export async function POST(req: NextRequest) {
 
         {/* Tab Content Area */}
         <div className="p-6 overflow-y-auto flex-1 font-mono text-xs">
+          {activeTab === 'java' && (
+            <div className="space-y-4 font-sans text-xs text-slate-300">
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-amber-400 text-sm">Java Spring Boot 3.3.x Backend (Ready in /backend-java)</h4>
+                    <p className="text-slate-400 text-xs">Complete Spring Boot project with Spring Data JPA, REST Controllers, and H2/PostgreSQL.</p>
+                  </div>
+                  <button
+                    onClick={() => handleCopy("cd backend-java && mvn clean install && mvn spring-boot:run")}
+                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Copy Command</span>
+                  </button>
+                </div>
+
+                <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[11px] text-amber-300">
+                  cd backend-java<br/>
+                  mvn clean install<br/>
+                  mvn spring-boot:run
+                </div>
+              </div>
+
+              <div className="space-y-2 font-mono text-[11px]">
+                <p className="font-sans font-bold text-slate-300">Sample OrderController.java (Transactional Checkout & Stock Deduction):</p>
+                <pre className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-slate-200 overflow-x-auto leading-relaxed">
+{`@RestController
+@RequestMapping("/api/orders")
+@CrossOrigin(origins = "*")
+public class OrderController {
+
+    @Autowired private OrderRepository orderRepository;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private CouponRepository couponRepository;
+
+    @PostMapping("/checkout")
+    @Transactional
+    public ResponseEntity<?> placeOrder(@RequestBody CheckoutRequest request) {
+        // 1. Verify pricing & deduct stock atomically
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (CheckoutRequest.ItemDto item : request.getItems()) {
+            Product prod = productRepository.findById(item.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+            if (prod.getStock() < item.getQuantity()) {
+                return ResponseEntity.badRequest().body("Insufficient stock for " + prod.getName());
+            }
+            prod.setStock(prod.getStock() - item.getQuantity());
+            productRepository.save(prod);
+            subtotal = subtotal.add(prod.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+
+        // 2. Compute discount, tax & create Order entity
+        Order order = new Order();
+        order.setOrderNumber("AUR-2026-" + (1000 + new Random().nextInt(9000)));
+        order.setCustomerName(request.getCustomerName());
+        order.setCustomerEmail(request.getCustomerEmail());
+        order.setSubtotal(subtotal);
+        order.setTotal(subtotal.multiply(new BigDecimal("1.0825")));
+        order.setStatus(Order.OrderStatus.PENDING);
+        order.setTrackingNumber("TRK" + System.currentTimeMillis());
+        return ResponseEntity.ok(orderRepository.save(order));
+    }
+}`}
+                </pre>
+              </div>
+            </div>
+          )}
           
           {activeTab === 'prisma' && (
             <div className="space-y-4">

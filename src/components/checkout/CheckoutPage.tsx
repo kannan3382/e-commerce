@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Address } from '../../types';
+import { formatRupees } from '../../utils/currency';
 
 export const CheckoutPage: React.FC = () => {
   const { 
@@ -28,8 +29,12 @@ export const CheckoutPage: React.FC = () => {
     placeOrder, 
     currentUser, 
     setCurrentPage, 
-    showToast 
+    showToast,
+    sendOrderToWhatsApp,
+    settings,
+    ownerWhatsAppNumber
   } = useStore();
+
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,39 +45,44 @@ export const CheckoutPage: React.FC = () => {
   
   const [addressForm, setAddressForm] = useState<Address>({
     id: 'addr-checkout',
-    fullName: currentUser?.name || 'Alex Morgan',
-    addressLine1: defaultAddr?.addressLine1 || '742 Evergreen Terrace',
-    addressLine2: defaultAddr?.addressLine2 || 'Suite 4B',
-    city: defaultAddr?.city || 'San Francisco',
-    state: defaultAddr?.state || 'CA',
-    postalCode: defaultAddr?.postalCode || '94107',
-    country: 'United States',
-    phone: defaultAddr?.phone || '+1 (555) 234-5678',
+    fullName: currentUser?.name || 'Aarav Sharma',
+    addressLine1: defaultAddr?.addressLine1 || '12th Main Road, HAL 2nd Stage',
+    addressLine2: defaultAddr?.addressLine2 || 'Indiranagar',
+    city: defaultAddr?.city || 'Bengaluru',
+    state: defaultAddr?.state || 'Karnataka',
+    postalCode: defaultAddr?.postalCode || '560038',
+    country: 'India',
+    phone: defaultAddr?.phone || '+91 98765 43210',
   });
 
   // Shipping Method
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express' | 'overnight'>('standard');
 
   // Payment Method
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'stripe' | 'razorpay' | 'upi' | 'cod'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'stripe' | 'razorpay' | 'upi' | 'cod'>('upi');
   const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
   const [cardExpiry, setCardExpiry] = useState('12/28');
   const [cardCvc, setCardCvc] = useState('888');
-  const [cardName, setCardName] = useState(currentUser?.name || 'Alex Morgan');
+  const [cardName, setCardName] = useState(currentUser?.name || 'Aarav Sharma');
 
   // Pricing calculations
   const discountAmount = appliedCoupon 
     ? (cartSubtotal * appliedCoupon.discountPercent) / 100 
     : 0;
 
-  const isFreeStandard = cartSubtotal >= 99;
-  const shippingCost = 
-    shippingMethod === 'overnight' ? 29 :
-    shippingMethod === 'express' ? 18 :
-    isFreeStandard ? 0 : 9.99;
+  const freeShippingThreshold = settings?.freeShippingThreshold || 1999;
+  const isFreeStandard = cartSubtotal >= freeShippingThreshold;
+  const standardFee = settings?.standardShippingFee || 149;
+  const expressFee = settings?.expressShippingFee || 349;
+  const gstRate = (settings?.gstRatePercent || 18) / 100;
 
-  const tax = Number(((cartSubtotal - discountAmount) * 0.0825).toFixed(2));
-  const orderTotal = Number((cartSubtotal - discountAmount + shippingCost + tax).toFixed(2));
+  const shippingCost = 
+    shippingMethod === 'overnight' ? (expressFee + 150) :
+    shippingMethod === 'express' ? expressFee :
+    isFreeStandard ? 0 : standardFee;
+
+  const tax = Math.round((cartSubtotal - discountAmount) * gstRate);
+  const orderTotal = Math.round(cartSubtotal - discountAmount + shippingCost + tax);
 
   // Switch to saved address
   const handleSelectSavedAddress = (addrId: string) => {
@@ -95,11 +105,19 @@ export const CheckoutPage: React.FC = () => {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const minOrderVal = settings?.minOrderValue || 100;
+    if (cartSubtotal < minOrderVal) {
+      showToast(`Minimum order requirement is ₹${minOrderVal}. Please add more items to your bag.`, 'error');
+      return;
+    }
+
     if (!addressForm.fullName || !addressForm.addressLine1 || !addressForm.city || !addressForm.postalCode) {
       showToast('Please fill in all mandatory shipping address fields.', 'error');
       setCurrentStep(1);
       return;
     }
+
 
     setIsProcessing(true);
 
@@ -383,11 +401,11 @@ export const CheckoutPage: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-slate-900">Standard Ground (3 - 5 business days)</h4>
-                        <p className="text-[11px] text-slate-500">Carbon-neutral fulfillment via UPS</p>
+                        <p className="text-[11px] text-slate-500">Fulfilled across India via Delhivery & Blue Dart</p>
                       </div>
                     </div>
                     <span className="text-xs font-bold">
-                      {isFreeStandard ? <span className="text-emerald-600 font-extrabold">FREE</span> : '$9.99'}
+                      {isFreeStandard ? <span className="text-emerald-600 font-extrabold">FREE</span> : formatRupees(149)}
                     </span>
                   </label>
 
@@ -402,11 +420,11 @@ export const CheckoutPage: React.FC = () => {
                         {shippingMethod === 'express' && <div className="w-2.5 h-2.5 rounded-full bg-slate-950" />}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900">UPS 2-Day Priority Air</h4>
-                        <p className="text-[11px] text-slate-500">Guaranteed 2-day domestic arrival</p>
+                        <h4 className="text-xs font-bold text-slate-900">Blue Dart Priority Air Express</h4>
+                        <p className="text-[11px] text-slate-500">Guaranteed 1 - 2 business days arrival</p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-900">$18.00</span>
+                    <span className="text-xs font-bold text-slate-900">{formatRupees(299)}</span>
                   </label>
 
                   <label 
@@ -420,11 +438,11 @@ export const CheckoutPage: React.FC = () => {
                         {shippingMethod === 'overnight' && <div className="w-2.5 h-2.5 rounded-full bg-slate-950" />}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900">FedEx Priority Overnight</h4>
-                        <p className="text-[11px] text-slate-500">Arrives tomorrow by 10:30 AM</p>
+                        <h4 className="text-xs font-bold text-slate-900">Same-Day / Priority Courier</h4>
+                        <p className="text-[11px] text-slate-500">Fast-tracked metro dispatch</p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-900">$29.00</span>
+                    <span className="text-xs font-bold text-slate-900">{formatRupees(499)}</span>
                   </label>
                 </div>
 
@@ -460,9 +478,9 @@ export const CheckoutPage: React.FC = () => {
                 {/* Gateway Selector Tabs */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { id: 'card', label: 'Credit Card', icon: CreditCard },
-                    { id: 'stripe', label: 'Stripe Direct', icon: ShieldCheck },
-                    { id: 'razorpay', label: 'Razorpay / UPI', icon: QrCode },
+                    { id: 'upi', label: 'UPI / QR', icon: QrCode },
+                    { id: 'razorpay', label: 'Razorpay', icon: ShieldCheck },
+                    { id: 'card', label: 'Cards / NetBanking', icon: CreditCard },
                     { id: 'cod', label: 'Cash on Deliv.', icon: Building },
                   ].map((p) => {
                     const Icon = p.icon;
@@ -542,15 +560,15 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Razorpay / UPI QR simulation */}
-                {paymentMethod === 'razorpay' && (
+                {/* Razorpay / UPI simulation */}
+                {(paymentMethod === 'razorpay' || paymentMethod === 'upi') && (
                   <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto text-slate-900 border border-slate-200 shadow-xs">
                       <QrCode className="w-10 h-10" />
                     </div>
-                    <h4 className="text-xs font-bold text-slate-900">Razorpay Unified Payments Gateway</h4>
+                    <h4 className="text-xs font-bold text-slate-900">Instant UPI & Online Banking</h4>
                     <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                      Supports instant UPI (Google Pay, PhonePe, Paytm), NetBanking, and international cards. Clicking Place Order authorizes securely.
+                      Supports instant UPI (Google Pay, PhonePe, Paytm, BHIM), NetBanking, and credit/debit cards. The store owner will also receive the complete order breakdown via WhatsApp!
                     </p>
                   </div>
                 )}
@@ -559,11 +577,24 @@ export const CheckoutPage: React.FC = () => {
                 {paymentMethod === 'cod' && (
                   <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
                     <p className="font-bold">Pay upon home delivery</p>
-                    <p className="text-[11px] text-amber-700">Please prepare exact cash or card for the courier upon parcel arrival.</p>
+                    <p className="text-[11px] text-amber-700">Please prepare exact cash or UPI for the courier upon parcel delivery.</p>
                   </div>
                 )}
 
-                <div className="pt-4 flex items-center justify-between">
+                {/* Automatic WhatsApp Alert Notice */}
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200/90 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-emerald-950 font-medium">
+                      Order details will be sent automatically to store owner on WhatsApp ({ownerWhatsAppNumber})
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                    Instant Ping
+                  </span>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
                   <button
                     onClick={() => setCurrentStep(2)}
                     className="text-xs font-semibold text-slate-600 hover:text-slate-950"
@@ -583,7 +614,7 @@ export const CheckoutPage: React.FC = () => {
                     ) : (
                       <>
                         <Lock className="w-3.5 h-3.5" />
-                        <span>Authorize & Place Order (${orderTotal.toFixed(2)})</span>
+                        <span>Authorize & Place Order ({formatRupees(orderTotal)})</span>
                       </>
                     )}
                   </button>
@@ -615,7 +646,7 @@ export const CheckoutPage: React.FC = () => {
                       <p className="text-[11px] text-slate-500">Qty: {item.quantity}</p>
                     </div>
                     <span className="text-xs font-black text-slate-900">
-                      ${(item.product.price * item.quantity).toFixed(2)}
+                      {formatRupees(item.product.price * item.quantity)}
                     </span>
                   </div>
                 ))}
@@ -625,31 +656,31 @@ export const CheckoutPage: React.FC = () => {
               <div className="pt-4 border-t border-slate-100 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal</span>
-                  <span className="font-bold text-slate-900">${cartSubtotal.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">{formatRupees(cartSubtotal)}</span>
                 </div>
 
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-600 font-semibold">
                     <span>Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)</span>
-                    <span>-${discountAmount.toFixed(2)}</span>
+                    <span>-{formatRupees(discountAmount)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between text-slate-600">
                   <span>Shipping</span>
                   <span className="font-bold text-slate-900">
-                    {shippingCost === 0 ? <span className="text-emerald-600">FREE</span> : `$${shippingCost.toFixed(2)}`}
+                    {shippingCost === 0 ? <span className="text-emerald-600">FREE</span> : formatRupees(shippingCost)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-slate-600">
-                  <span>Estimated Tax (8.25%)</span>
-                  <span className="font-bold text-slate-900">${tax.toFixed(2)}</span>
+                  <span>Estimated GST (18%)</span>
+                  <span className="font-bold text-slate-900">{formatRupees(tax)}</span>
                 </div>
 
                 <div className="pt-3 border-t border-slate-200 flex justify-between text-base font-black text-slate-950">
                   <span>Order Total</span>
-                  <span>${orderTotal.toFixed(2)}</span>
+                  <span>{formatRupees(orderTotal)}</span>
                 </div>
               </div>
 

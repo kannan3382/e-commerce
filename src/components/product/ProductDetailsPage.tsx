@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { ProductCard } from '../shop/ProductCard';
+import { formatRupees, getWhatsAppProductInquiryUrl, formatIndianPhoneNumber } from '../../utils/currency';
 
 export const ProductDetailsPage: React.FC = () => {
   const { 
@@ -31,6 +32,8 @@ export const ProductDetailsPage: React.FC = () => {
     getReviewsForProduct,
     addReview,
     currentUser,
+    ownerWhatsAppNumber,
+    orderSingleProductViaWhatsApp,
     setIsAuthModalOpen,
     showToast
   } = useStore();
@@ -252,16 +255,16 @@ export const ProductDetailsPage: React.FC = () => {
               {/* Pricing */}
               <div className="pt-2 flex items-baseline gap-3">
                 <span className="text-3xl sm:text-4xl font-black text-slate-950">
-                  ${product.price.toFixed(2)}
+                  {formatRupees(product.price)}
                 </span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <span className="text-base text-slate-400 line-through">
-                    ${product.originalPrice.toFixed(2)}
+                    {formatRupees(product.originalPrice)}
                   </span>
                 )}
                 {discountPercent > 0 && (
                   <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">
-                    Save ${(product.originalPrice! - product.price).toFixed(2)}
+                    Save {formatRupees(product.originalPrice! - product.price)}
                   </span>
                 )}
               </div>
@@ -353,6 +356,30 @@ export const ProductDetailsPage: React.FC = () => {
                   <Zap className="w-4 h-4" />
                   <span>Instant Checkout</span>
                 </button>
+              </div>
+
+              {/* Order via WhatsApp direct buttons */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => orderSingleProductViaWhatsApp(product, quantity, selectedFinish)}
+                  disabled={product.stock <= 0}
+                  className="w-full py-3.5 px-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition active:scale-98"
+                >
+                  <MessageSquare className="w-4 h-4 fill-white" />
+                  <span>Order on WhatsApp (Auto-Dispatches to +91 93607 23382)</span>
+                </button>
+                <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
+                  <span>Owner Contact: <strong className="text-emerald-800">{formatIndianPhoneNumber(ownerWhatsAppNumber)}</strong></span>
+                  <a
+                    href={getWhatsAppProductInquiryUrl(product.name, product.price, ownerWhatsAppNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-700 hover:underline font-semibold"
+                  >
+                    Ask question first →
+                  </a>
+                </div>
               </div>
 
               {/* Reassurance strip */}
@@ -448,16 +475,16 @@ export const ProductDetailsPage: React.FC = () => {
               <div className="max-w-3xl space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <h3 className="text-base font-bold text-slate-950">Domestic & International Fulfillment</h3>
                 <p>
-                  All orders are dispatched within 24 hours from our climate-controlled fulfillment hub in California. Domestic shipments arrive within 2-4 business days via UPS Priority.
+                  All orders are dispatched within 24 hours from our regional logistics hub. Domestic shipments arrive within 2-4 business days via Blue Dart Air Express.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <h4 className="font-bold text-xs text-slate-900 mb-1">Standard Delivery</h4>
-                    <p className="text-xs text-slate-500">Free for orders over $99. $9.99 flat rate for orders under $99.</p>
+                    <p className="text-xs text-slate-500">Free for orders over ₹1,999. ₹149 flat rate for orders under ₹1,999.</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <h4 className="font-bold text-xs text-slate-900 mb-1">30-Day Hassle-Free Returns</h4>
-                    <p className="text-xs text-slate-500">Try in your studio for 30 days. Prepaid return label included with every order.</p>
+                    <p className="text-xs text-slate-500">Try in your studio for 30 days. Prepaid return pickup scheduled from your doorstep.</p>
                   </div>
                 </div>
               </div>

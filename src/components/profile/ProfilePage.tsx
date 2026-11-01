@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Address, Order, OrderStatus } from '../../types';
+import { formatRupees, getWhatsAppOrderUrl } from '../../utils/currency';
 
 export const ProfilePage: React.FC = () => {
   const { 
@@ -39,7 +40,8 @@ export const ProfilePage: React.FC = () => {
     setEmailModalOrder,
     trackingOrderId,
     setTrackingOrderId,
-    showToast
+    showToast,
+    ownerWhatsAppNumber
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'wishlist' | 'security'>('orders');
@@ -256,7 +258,7 @@ export const ProfilePage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => setTrackingOrderId(order.id)}
                         className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
@@ -264,6 +266,16 @@ export const ProfilePage: React.FC = () => {
                         <Truck className="w-3.5 h-3.5" />
                         <span>Track Live Parcel</span>
                       </button>
+
+                      <a
+                        href={getWhatsAppOrderUrl(order, ownerWhatsAppNumber)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+                        title="Send Order Details to Store Owner via WhatsApp"
+                      >
+                        <span>📲 WhatsApp Owner</span>
+                      </a>
 
                       <button
                         onClick={() => setEmailModalOrder(order)}
@@ -298,7 +310,7 @@ export const ProfilePage: React.FC = () => {
                           </div>
                         </div>
                         <span className="font-black text-slate-900">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatRupees(item.price * item.quantity)}
                         </span>
                       </div>
                     ))}
@@ -319,7 +331,7 @@ export const ProfilePage: React.FC = () => {
                     <div className="sm:text-right">
                       <span className="text-slate-500">Total Paid:</span>
                       <p className="text-base font-black text-slate-950">
-                        ${order.total.toFixed(2)}
+                        {formatRupees(order.total)}
                       </p>
                     </div>
                   </div>
@@ -432,7 +444,7 @@ export const ProfilePage: React.FC = () => {
                           {p.name}
                         </h4>
                         <span className="font-black text-sm text-slate-950 mt-1 block">
-                          ${p.price.toFixed(2)}
+                          {formatRupees(p.price)}
                         </span>
                       </div>
 

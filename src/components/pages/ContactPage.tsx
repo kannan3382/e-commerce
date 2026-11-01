@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, MessageSquare, CheckCircle2, ChevronDown, Send } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { formatIndianPhoneNumber } from '../../utils/currency';
 
 export const ContactPage: React.FC = () => {
-  const { showToast } = useStore();
+  const { showToast, ownerWhatsAppNumber, settings } = useStore();
+
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -70,12 +72,33 @@ export const ContactPage: React.FC = () => {
 
               <div className="space-y-4 text-xs">
                 <div className="flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-slate-900">WhatsApp Concierge & Orders</h4>
+                    <p className="text-slate-700 font-mono font-bold mt-0.5">
+                      {formatIndianPhoneNumber(ownerWhatsAppNumber)}
+                    </p>
+                    <a
+                      href={`https://wa.me/919360723382?text=${encodeURIComponent('Hello! I have a question regarding products on AURA.')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] transition shadow-2xs"
+                    >
+                      <span>Chat on WhatsApp</span>
+                      <Send className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
                   <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900">Email Concierge</h4>
-                    <p className="text-slate-500 mt-0.5">concierge@aura.store</p>
+                    <p className="text-slate-600 mt-0.5 font-medium">{settings?.supportEmail || 'kannanjeyabalan@gmail.com'}</p>
                     <span className="text-[10px] text-emerald-700 font-semibold">Response within 2 hours</span>
                   </div>
                 </div>
@@ -85,9 +108,9 @@ export const ContactPage: React.FC = () => {
                     <Phone className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900">Customer Care Hotline</h4>
-                    <p className="text-slate-500 mt-0.5">+1 (800) 555-AURA</p>
-                    <span className="text-[10px] text-slate-400">Mon - Fri: 8 AM – 6 PM PST</span>
+                    <h4 className="font-bold text-slate-900">Customer Helpline</h4>
+                    <p className="text-slate-600 mt-0.5 font-medium">{settings?.supportPhone || '+91 93607 23382'}</p>
+                    <span className="text-[10px] text-slate-400">Mon - Sat: 9 AM – 7 PM IST</span>
                   </div>
                 </div>
 
@@ -96,12 +119,12 @@ export const ContactPage: React.FC = () => {
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900">Design Studio & Fulfillment</h4>
-                    <p className="text-slate-500 mt-0.5">500 Howard Street, Suite 400</p>
-                    <p className="text-slate-500">San Francisco, CA 94105</p>
+                    <h4 className="font-bold text-slate-900">Fulfillment & Experience Hub</h4>
+                    <p className="text-slate-600 mt-0.5">{settings?.storeAddress || 'Tower 4, Electronic City Phase 1, Hosur Road, Bengaluru, Karnataka 560100'}</p>
                   </div>
                 </div>
               </div>
+
 
               {/* Live Support Status */}
               <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 text-xs text-emerald-900">

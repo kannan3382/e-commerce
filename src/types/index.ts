@@ -152,3 +152,22 @@ export type PageRoute =
   | 'about' 
   | 'contact' 
   | 'admin';
+
+export interface StoreSettings {
+  storeName: string;
+  ownerWhatsApp: string;
+  supportEmail: string;
+  supportPhone: string;
+  storeAddress: string;
+  gstNumber: string;
+  minProductPrice: number;
+  minOrderValue: number;
+  freeShippingThreshold: number;
+  standardShippingFee: number;
+  expressShippingFee: number;
+  gstRatePercent: number;
+  enableWhatsAppAlerts: boolean;
+  enableCod: boolean;
+  lowStockThreshold: number;
+}
+
